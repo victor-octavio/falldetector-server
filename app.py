@@ -5,6 +5,7 @@ import mediapipe as mp
 import numpy as np
 import time
 import threading
+import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -33,6 +34,12 @@ def video_feed():
 def status():
     return jsonify({"fall_detected": fall_detected})
 
+def trigger_webhook():
+    try:
+        requests.get('http://localhost:5678/webhook-test/queda', timeout=3)
+    except:
+        pass
+
 def process_video():
     global frame_output, fall_detected, fall_time
 
@@ -48,6 +55,7 @@ def process_video():
             mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
             # vale a pena depois explorar algumas outras landmarks para melhorar a detecção
+            # neste caso apenas usamos ombro e quadril para detectar se a pessoa esta deitada 
             landmarks = results.pose_landmarks.landmark
             shoulder_y = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].y
             hip_y = landmarks[mp_pose.PoseLandmark.LEFT_HIP].y
@@ -65,6 +73,7 @@ def process_video():
             if fall_detected and time.time() - fall_time > 2:
                 cv2.putText(frame, "QUEDA DETECTADA!", (50, 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+                threading.Thread(target=trigger_webhook).start()  
 
         # manda o frame atual para streaming MJPEG
         ret, buffer = cv2.imencode('.jpg', frame)
