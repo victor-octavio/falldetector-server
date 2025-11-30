@@ -34,9 +34,9 @@ def video_feed():
 def status():
     return jsonify({"fall_detected": fall_detected})
 
-def trigger_webhook():
+def notify_client():
     try:
-        requests.get('http://localhost:5678/webhook-test/queda', timeout=3)
+        requests.post('http://localhost:8090/notify', timeout=3) # endpoint do backend php que recebe a notificação de queda
     except:
         pass
 
@@ -73,7 +73,7 @@ def process_video():
             if fall_detected and time.time() - fall_time > 2:
                 cv2.putText(frame, "QUEDA DETECTADA!", (50, 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
-                threading.Thread(target=trigger_webhook).start()  
+                threading.Thread(target=notify_client).start()  
 
         # manda o frame atual para streaming MJPEG
         ret, buffer = cv2.imencode('.jpg', frame)
